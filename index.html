@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Conquest Simulator</title>
+    <style>
+        body { margin: 0; background: #1a1a1a; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; }
+        #stats-bar { width: 100%; background: #333; padding: 15px; display: flex; justify-content: space-around; font-weight: bold; border-bottom: 3px solid #4CAF50; }
+        canvas { border: 5px solid #444; margin-top: 20px; background: #2b3d50; cursor: crosshair; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        #controls { margin-top: 15px; background: #333; padding: 20px; border-radius: 8px; text-align: center; }
+        button { background: #4CAF50; border: none; color: white; padding: 10px 20px; font-size: 16px; border-radius: 5px; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #45a049; transform: scale(1.05); }
+        .log { margin-top: 10px; color: #aaa; font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <div id="stats-bar">
+        <span>Treasury: $<span id="money">1000</span></span>
+        <span>Population: <span id="pop">500</span></span>
+        <span>Territory: <span id="land">1</span></span>
+    </div>
+
+    <canvas id="mapCanvas" width="800" height="500"></canvas>
+
+    <div id="controls">
+        <button onclick="expandTerritory()">Expand Borders ($500)</button>
+        <button onclick="taxPeople()">Collect Taxes</button>
+        <div class="log" id="gameLog">Welcome, Leader. Click the map or buttons to begin.</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('mapCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let stats = {
+            money: 1000,
+            population: 500,
+            territory: 1
+        };
+
+        // Generate a random map "grid"
+        const gridSize = 20;
+        const rows = canvas.height / gridSize;
+        const cols = canvas.width / gridSize;
+        let mapData = [];
+
+        function initMap() {
+            for (let y = 0; y < rows; y++) {
+                mapData[y] = [];
+                for (let x = 0; x < cols; x++) {
+                    // Randomly assign land (1) or water (0)
+                    mapData[y][x] = Math.random() > 0.7 ? 1 : 0;
+                }
+            }
+            // Start with one "capital" in the middle
+            mapData[Math.floor(rows/2)][Math.floor(cols/2)] = 2; 
+            drawMap();
+        }
+
+        function drawMap() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    if (mapData[y][x] === 1) ctx.fillStyle = "#3d5e3a"; // Wild Land
+                    else if (mapData[y][x] === 2) ctx.fillStyle = "#4CAF50"; // Your Territory
+                    else ctx.fillStyle = "#2b3d50"; // Ocean
+                    
+                    ctx.fillRect(x * gridSize, y * gridSize, gridSize - 1, gridSize - 1);
+                }
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('money').innerText = stats.money;
+            document.getElementById('pop').innerText = stats.population;
+            document.getElementById('land').innerText = stats.territory;
+        }
+
+        function expandTerritory() {
+            if (stats.money >= 500) {
+                stats.money -= 500;
+                // Find a land tile next to your territory and claim it
+                let expanded = false;
+                for (let y = 0; y < rows; y++) {
+                    for (let x = 0; x < cols; x++) {
+                        if (mapData[y][x] === 2) {
+                            // Check neighbors
+                            if (y > 0 && mapData[y-1][x] === 1) { mapData[y-1][x] = 2; expanded = true; break; }
+                            if (x < cols-1 && mapData[y][x+1] === 1) { mapData[y][x+1] = 2; expanded = true; break; }
+                        }
+                    }
+                    if (expanded) break;
+                }
+                
+                if (expanded) {
+                    stats.territory++;
+                    stats.population += 100;
+                    log("Expanded borders successfully!");
+                } else {
+                    log("No adjacent wild land found!");
+                }
+                updateUI();
+                drawMap();
+            } else {
+                log("Not enough money!");
+            }
+        }
+
+        function taxPeople() {
+            let earnings = stats.population * 0.5;
+            stats.money += Math.floor(earnings);
+            log("Collected $" + Math.floor(earnings) + " in taxes.");
+            updateUI();
+        }
+
+        function log(msg) {
+            document.getElementById('gameLog').innerText = msg;
+        }
+
+        initMap();
+    </script>
+</body>
+</html>
